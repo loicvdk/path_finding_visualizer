@@ -35,7 +35,7 @@ GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 
 ##########################
-########## GRID ##########
+########## NODE ##########
 ##########################
 
 
@@ -55,7 +55,7 @@ class Node:
         self.y = col * width    # y position in pixels
         self.color = WHITE      # default color
         self.neighbors = []     # neighbors, useful for the algorithm
-        self.width = width
+        self.width = width      # node width, not the window width
         self.total_row = total_row
 
     def get_pos(self):
@@ -117,4 +117,108 @@ class Node:
         )
 
     def update_neighbors(self, grid):
-        pass
+        """
+        This method will keep track of the neighbors of the node, but in order to do that
+        we will first have to check if the neighbor is valid.
+        """
+        self.neighbors = []
+        if self.row < self.total_row - 1 and not grid[self.row + 1][self.col].is_barrier():
+            # Check if I am not on the bottom edge and append neighbor BELOW
+            self.neighbors.append(grid[self.row + 1][self.col])
+
+        if self.row > 0 and not grid[self.row - 1][self.col].is_barrier():
+            # Check if I am not on the upper edge and append neighbor ABOVE
+            self.neighbors.append(grid[self.row - 1][self.col])
+
+        if self.col < self.total_row - 1 and not grid[self.row][self.col + 1].is_barrier():
+            # Check if I am not on the right edge and append neighbor on the RIGH
+            self.neighbors.append(grid[self.row][self.col + 1])
+
+        if self.col > 0 and not grid[self.row][self.col - 1].is_barrier():
+            # Check if I am not on the left edge and append neighbor on the LEFT
+            self.neighbors.append(grid[self.row][self.col - 1])
+
+        def __lt__(self, other):
+            """
+            Dunder method that allow us to use < (less than).
+            """
+            return False
+
+
+##########################
+########## GRID ##########
+##########################
+
+def make_grid(nbr_rows, win_width):
+    """
+    This function will create (populate) a 2D list that will represent our grid. It takes two
+    arguments: the number of rows and the width of the pygame window that we want to 
+    display.
+    """
+    grid = []
+    # Compute the nodes' width based on the size of the window and the number of row that we want to have
+    node_width = win_width // rows
+    for row in range(rows):
+        grid.append([])
+        # Remember that we have a square here so #rows = #columns
+        for column in range(rows):
+            node = Node(row, column, node_width, rows)
+            grid[row].append(node)
+
+    return grid
+
+
+def draw_grid(window, rows, win_width):
+    node_width = win_width // rows
+    for row in range(rows):
+        # Draw an horizontal line for every row and space them every node_width = node_height
+        pygame.draw.line(window, GREY, (0, row * node_width),
+                         (win_width, row * node_width))
+        for column in range(rows):
+            # Draw vertical line for every column and space them every node_width
+            pygame.draw.line(window, GREY, (column * node_width,
+                             0), (column * node_width, win_width))
+
+
+def draw(window, grid, rows, win_width):
+    """
+    This function will actually make the changes on our pygame window.
+    """
+    win.fill(WHITE)  # every frame we show, we will fill it in white
+
+    for row in grid:
+        for node in row:
+            # Call the draw method in the Spot class and draw itself on the window
+            node.draw(window)
+
+    draw_grid(window, rows, win_width)
+    pygame.display.update()     # append all the changes to our pygame window
+
+
+def get_clicked_position(position, nbr_rows, win_width):
+    """
+    Based on a (y, x) position return by pygame, this function will figure out in which
+    node we clicked.
+    """
+    node_width = win_width // nbr_rows
+    y, x = position
+
+    clicked_row = y // node_width
+    clicked_col = x // node_width
+
+    return clicked_row, clicked_col
+
+
+###############################
+########## ALGORITHM ##########
+###############################
+
+
+def heuristic(p1, p2):
+    """
+    This is the heuristic that we will use in the A* algorithm. This one will compute
+    the _Manhattan Distance_ between a point (p1) and an other point (p2)
+    """
+    x1, y1 = p1
+    x2, y2 = p2
+    return abs(x1 - x2) + abs(y1 - y2)
